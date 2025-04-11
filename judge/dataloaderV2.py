@@ -27,7 +27,7 @@ class TapTapDataset2(Dataset):
         features = []
         label = self.labels[idx]
         inds = [i for i, lbl in enumerate(self.labels) if lbl == label]
-        inds = [x for x in inds if x <= idx][-3:]
+        inds = [x for x in inds if x <= idx][-self.window_size:]
         if (len(inds) < self.window_size):
             for _ in range(self.window_size - len(inds)):
                 features.extend([0,0,0])

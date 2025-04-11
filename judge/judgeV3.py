@@ -7,19 +7,22 @@ from tqdm import tqdm
 from judge.dataloaderV2 import TapTapDataset2
 from torch.utils.data import DataLoader, random_split
 
-class Judge2(nn.Module):
-    def __init__(self, num_classes=2, hidden_dim=64, window_size=3, dropout=0.5):
-        super(Judge2, self).__init__()
+class Judge3(nn.Module):
+    def __init__(self, num_classes=2, hidden_dim=64, window_size=3, num_heads=1, dropout=0.5):
+        super(Judge3, self).__init__()
         self.window_size = window_size
+
+        self.input_projection = nn.Linear(3, hidden_dim)  # Project input to hidden_dim
+        self.attention = nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=num_heads, batch_first=True)        
         
         self.classifier = nn.Sequential(
-            nn.Linear(window_size*3, hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout), 
             nn.Linear(hidden_dim, hidden_dim // 2),
             nn.ReLU(),
+            nn.Dropout(dropout), 
+            nn.Linear(hidden_dim // 2, hidden_dim // 4),
+            nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_dim // 2, num_classes),
+            nn.Linear(hidden_dim // 4, num_classes),
         )
 
         # Ensure GPU/CPU compatibility
@@ -27,8 +30,19 @@ class Judge2(nn.Module):
         self.to(self.DEVICE)
 
     def forward(self, x):
-        return self.classifier(x)   
-    
+        # Reshape input for attention: (batch_size, sequence_length, embedding_dim)
+        batch_size = x.size(0)
+        x = x.view(batch_size, self.window_size, -1)  # Assuming input is flattened
+        x = self.input_projection(x)
+        # Apply attention
+        attn_output, _ = self.attention(x, x, x)  # Self-attention
+
+        # Flatten the output for the classifier
+        attn_output = attn_output.mean(dim=1)  # Aggregate over the sequence dimension
+
+        # Pass through the classifier
+        return self.classifier(attn_output)
+        
     def train_model(self, data_file, criterion, optimizer, scheduler=None, num_epochs=100, batch_size=2, test=False, wandb_plot=True, random=True):  
         self.wandb_plot = wandb_plot   
         #wandb initialization
