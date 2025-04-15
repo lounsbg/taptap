@@ -18,6 +18,9 @@ from judge.judgeLSTM import JudgeLSTM
 
 from judge.dataloaderV2 import tokenize_char
 
+metrics_file = None
+training_file = None
+
 # Initialize pygame
 pygame.init()
 
@@ -54,7 +57,7 @@ TEXT_INPUT_PRED = pygame_gui.elements.UITextEntryBox(
 
 # Function to log detailed metrics to a .txt file
 def log_metrics(sentence, time_taken, mistakes, wpm, times_between_chars):
-    with open("typing_metrics.txt", "a") as file:
+    with open(metrics_file, "a") as file:
         file.write(f"Sentence: {sentence}\n")
         file.write(f"Time Taken: {time_taken:.2f} seconds\n")
         file.write(f"Mistakes: {mistakes}\n")
@@ -62,11 +65,15 @@ def log_metrics(sentence, time_taken, mistakes, wpm, times_between_chars):
         file.write(f"Time Between Each Character: {times_between_chars}\n")
         file.write("-" * 40 + "\n")
 
+def log_inputs(prev_char, curr_char, time, label):
+    with open(training_file, "a") as file:
+        file.write(f"{prev_char}~{curr_char}~{time}~{label}\n")
+
 # Function to show the sentence on screen
-def show_text(sentence, y_offset=0, font_size=40):
-    """ Display the sentence to type at a specific vertical offset. """
+def show_text(sentence, y_offset=0, font_size=40, color="black"):
+    """ Display the sentence to type at a specific vertical offset with a customizable color. """
     font = pygame.font.SysFont("Arial", font_size)  # Use Arial or any other available font
-    new_text = font.render(sentence, True, "black")
+    new_text = font.render(sentence, True, color)  # Set the text color
     new_text_rect = new_text.get_rect(center=(WIDTH / 2, HEIGHT / 4 + y_offset))  # Adjust vertical position with y_offset
     SCREEN.blit(new_text, new_text_rect)
 
@@ -81,12 +88,7 @@ def check_input_match(typed_text, sentence_to_type):
     sentence_to_type = sentence_to_type.lower()
 
     # Check for a match
-    if typed_text == sentence_to_type:
-        print("Correct! Moving to the next sentence.")
-        return True
-    else:
-        print("Incorrect! Try again.")
-        return False
+    return typed_text == sentence_to_type
 
 
 def get_user_name():
@@ -146,61 +148,74 @@ def display_sentences():
         start_time = time.time()
         char_times = []  # To store time between character presses
         mistakes = 0
-        last_char_time = start_time  # Initialize the time for the first character
+        last_char_time = None  # Initialize the time for the first character
+        chars = []
+        typed_text = ""
+        incorrect = False
 
-        # Event handling and UI updates
-        UI_REFRESH_RATE = CLOCK.tick(60) / 1000  # Frame rate
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit(0)  # Break the loop to exit gracefully
+        while (check_input_match(typed_text, sentence_to_type) == False):
+            # Event handling and UI updates
+            UI_REFRESH_RATE = CLOCK.tick(60) / 1000  # Frame rate
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit(0)  # Break the loop to exit gracefully
 
-            if event.type == pygame.KEYDOWN:
-                # Handle 'Enter' key (K_RETURN)
-                if event.key == pygame.K_RETURN:
-                    typed_text = TEXT_INPUT.text.strip()  # Get the typed text, strip whitespace
-                    print(f"User typed: {typed_text}")  # For debugging
+                if event.type == pygame.KEYDOWN:
+                    #capture the timing each key stroke
+                    if (len(chars) < len(sentence_to_type)) and (event.unicode == sentence_to_type[len(chars)]): 
+                        chars.append(event.unicode)  # Append the typed character to the list
+                        # Track time between each character press
+                        if last_char_time == None:
+                            last_char_time = time.time()
+                            
+                        else:
+                            char_time = time.time() - last_char_time  # Time since last character
+                            log_inputs(chars[-2], chars[-1], char_time, len(names) - 1)
+                            char_times.append(char_time)  # Store the time taken for this character
+                            last_char_time = time.time()  # Update last character time
 
-                    # Calculate time taken for the sentence
-                    time_taken = time.time() - start_time
-
-                    # Calculate WPM
-                    word_count = len(typed_text.split())
-                    wpm = (word_count / time_taken) * 60  # Words per minute
-
-                    # Use the check_input_match function to compare the text
-                    if check_input_match(typed_text, sentence_to_type):
-                        print("Correct! Moving to the next sentence.")  # For debugging
-                        log_metrics(sentence_to_type, time_taken, mistakes, wpm, char_times)  # Log metrics to file
-                        current_sentence_index += 1  # Move to the next sentence
-                        TEXT_INPUT.clear()  # Clear the text input field
-                        break  # Exit the loop to show the next sentence
-                    else:
+                    elif event.key != pygame.K_BACKSPACE and event.key != pygame.K_RETURN and (len(event.unicode) > 0):
                         mistakes += 1  # Increment mistakes counter
-                        print("Incorrect! Try again.")  # For debugging
 
-                # Track time between each character press
-                char_time = time.time() - last_char_time  # Time since last character
-                char_times.append(char_time)
-                last_char_time = time.time()  # Update last character time
+                    # Handle 'Enter' key (K_RETURN)
+                    if event.key == pygame.K_RETURN:
+                        typed_text = TEXT_INPUT.text.strip()  # Get the typed text, strip whitespace
 
-            MANAGER.process_events(event)
+                        # Calculate time taken for the sentence
+                        time_taken = time.time() - start_time
 
-            # Update the UI manager
-            MANAGER.update(UI_REFRESH_RATE)
+                        # Calculate WPM
+                        word_count = len(typed_text.split())
+                        wpm = (word_count / time_taken) * 60  # Words per minute
 
-            # Fill the screen with white color (clear the screen)
-            SCREEN.fill("white")
+                        # Use the check_input_match function to compare the text
+                        if check_input_match(typed_text, sentence_to_type):
+                            log_metrics(sentence_to_type, time_taken, mistakes, wpm, char_times)  # Log metrics to file
+                            current_sentence_index += 1  # Move to the next sentence
+                            TEXT_INPUT.clear()  # Clear the text input field
+                        else: 
+                            incorrect = True
+                            mistakes += 1
 
-            # Show the current sentence to type
-            show_text(f"User now typing: {names[-1]}\n\n", y_offset=200, font_size=20)
-            show_text(sentence_to_type)
+                MANAGER.process_events(event)
 
-            # Draw the UI components (including the text input field)
-            MANAGER.draw_ui(SCREEN)
+                # Update the UI manager
+                MANAGER.update(UI_REFRESH_RATE)
 
-            # Update the display
-            pygame.display.update()
+                # Fill the screen with white color (clear the screen)
+                SCREEN.fill("white")
+
+                # Show the current sentence to type
+                show_text(f"User now typing: {names[-1]}\n\n", y_offset=220, font_size=20)
+                show_text(sentence_to_type)
+                if incorrect: show_text("Incorrect. Please try again.", y_offset=150, font_size=40, color="red")
+
+                # Draw the UI components (including the text input field)
+                MANAGER.draw_ui(SCREEN)
+
+                # Update the display
+                pygame.display.update()
 
 def display_training():
     # Hide the text input box
@@ -296,6 +311,12 @@ def predict(model):
 
 
 if __name__ == "__main__":
+    metrics_file = "data/typing_metrics.txt"
+    training_file = "data/training.txt"
+
+    open(metrics_file, "w").close()  # Clear the metrics file
+    open(training_file, "w").close()  # Clear the training data file
+
     #get the first user
     get_user_name()
     display_sentences()
@@ -313,7 +334,7 @@ if __name__ == "__main__":
 
         #train the model
         print("Trining the model:")
-        model.train_model("data/test_data.txt", criterion, optimizer, wandb_plot=False, random=True)
+        model.train_model(training_file, criterion, optimizer, wandb_plot=False, random=True)
 
         #generate predictions
         predict(model)

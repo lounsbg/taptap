@@ -4,6 +4,7 @@ import torch
 import numpy as np
 
 def tokenize_char(c):
+        if c == '':  c = ' '
         return ord(c) - ord('a')
 
 class TapTapDataset2(Dataset):
@@ -16,7 +17,7 @@ class TapTapDataset2(Dataset):
         with open(file_path, 'r') as f:
             lines = f.readlines()
             for line in lines:
-                prev, curr, duration, label = line.strip().split(',')
+                prev, curr, duration, label = line.strip().split('~')
                 self.data.append((prev, curr, float(duration)))
                 self.labels.append(int(label))
 
