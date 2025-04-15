@@ -17,4 +17,4 @@ Time Between Each Character: [1.9874355792999268, 0.21463394165039062, 1.7803990
 
 
 FORMAT 
-{previous character}, {current character}, {time in between character selections}, {ID of typer}Sentence: The quick brown fox jumps over the lazy dog. Hello, world! How's it going?
+{previous character}, {current character}, {time in between character selections}, {ID of typer}

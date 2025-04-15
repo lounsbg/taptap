@@ -16,6 +16,8 @@ from judge.judgeV2 import Judge2
 from judge.judgeV3 import Judge3
 from judge.judgeLSTM import JudgeLSTM
 
+from judge.dataloaderV2 import tokenize_char
+
 # Initialize pygame
 pygame.init()
 
@@ -102,7 +104,7 @@ def get_user_name():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
-                    return  # Break the loop to exit gracefully
+                    sys.exit(0)  # Break the loop to exit gracefully
 
                 if event.type == pygame.KEYDOWN:
                     # Handle 'Enter' key (K_RETURN)
@@ -151,7 +153,7 @@ def display_sentences():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                return  # Break the loop to exit gracefully
+                sys.exit(0)  # Break the loop to exit gracefully
 
             if event.type == pygame.KEYDOWN:
                 # Handle 'Enter' key (K_RETURN)
@@ -220,13 +222,24 @@ def display_training():
     # Update the display
     pygame.display.update()
 
-def predict():
+def predict(model):
     global names
     prediction = None
+    prev_time = None
+
+    return_button = pygame_gui.elements.UIButton(
+        relative_rect=pygame.Rect((700, 800), (200, 80)),  # Position and size of the button
+        text="Add another user",
+        manager=MANAGER
+    )
+
     TEXT_INPUT.hide()
     TEXT_INPUT_PRED.show()
     TEXT_INPUT_PRED.set_text("")
     pygame.event.clear()
+
+    window_buffer = [(0, 0, 0)] * model.window_size  # Initialize to window size for simplicity
+
 
     while True:
         # Event handling and UI updates
@@ -234,12 +247,31 @@ def predict():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                return  # Break the loop to exit gracefully
+                sys.exit(0)  # Break the loop to exit gracefully
+
+            if event.type == pygame.USEREVENT:
+                if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                    if event.ui_element == return_button:
+                        return  # Exit the predict function
 
             if event.type == pygame.KEYDOWN:
-                # Handle 'Enter' key (K_RETURN)
-                typed_text = TEXT_INPUT_PRED.get_text().strip()  # Get the typed text, strip whitespace
-                prediction = 0
+                if (prev_time == None): # If this is the first key pressed
+                    prev_time = time.time()
+                else: # Otherwise...
+                    curr_time = time.time()
+                    letter = event.unicode
+                    # Tokenize the input and add it to the buffer
+                    if len(letter) > 0:  # Ignore special keys like Shift
+                        tokenized_input = (tokenize_char(letter), tokenize_char(letter), curr_time - prev_time)
+                        window_buffer.append(tokenized_input)
+
+                        window_buffer.pop(0) # discard the oldest in the window buffer
+
+                        inputs = torch.tensor(window_buffer, dtype=torch.float32).unsqueeze(0) # feed into model
+                        _, prediction = torch.max(model(inputs), 1)
+                        prediction = names[prediction.item()]
+
+                    prev_time = curr_time
 
             MANAGER.process_events(event)
 
@@ -252,7 +284,7 @@ def predict():
         # Show the current sentence to type
         show_text("Begin typing for predictions to appear", y_offset=-175, font_size=20)
         if (prediction != None):
-            show_text(f"Prediction: {prediction}", y_offset=500, font_size=40)
+            show_text(f"Prediction: {prediction}", y_offset=450, font_size=40)
 
         # Draw the UI components (including the text input field)
         MANAGER.draw_ui(SCREEN)
@@ -260,9 +292,10 @@ def predict():
         # Update the display
         pygame.display.update()
 
-if __name__ == "__main__":
-    criterion = nn.CrossEntropyLoss()
 
+
+
+if __name__ == "__main__":
     #get the first user
     get_user_name()
     display_sentences()
@@ -274,7 +307,8 @@ if __name__ == "__main__":
 
         #initialize the model
         display_training()
-        model = JudgeLSTM(num_classes=len(names), hidden_dim=64, window_size=15, lstm_layers=3)
+        model = JudgeLSTM(num_classes=len(names), hidden_dim=64, window_size=3, lstm_layers=3)
+        criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, weight_decay=1e-1)
 
         #train the model
@@ -282,5 +316,5 @@ if __name__ == "__main__":
         model.train_model("data/test_data.txt", criterion, optimizer, wandb_plot=False, random=True)
 
         #generate predictions
-        predict()
+        predict(model)
 

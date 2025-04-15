@@ -3,6 +3,9 @@ from torch.utils.data import Dataset, DataLoader
 import torch
 import numpy as np
 
+def tokenize_char(c):
+        return ord(c) - ord('a')
+
 class TapTapDataset2(Dataset):
     def __init__(self, file_path, window_size=3):
         super().__init__()
@@ -20,8 +23,6 @@ class TapTapDataset2(Dataset):
     def __len__(self):
         return len(self.data) - self.window_size + 1
 
-    def tokenize_char(self, c):
-        return ord(c) - ord('a')
 
     def __getitem__(self, idx):
         features = []
@@ -33,10 +34,10 @@ class TapTapDataset2(Dataset):
                 features.extend([0,0,0])
             for i in inds:
                 prev, curr, duration = self.data[i]
-                features.extend([self.tokenize_char(prev), self.tokenize_char(curr), duration])
+                features.extend([tokenize_char(prev), tokenize_char(curr), duration])
         else:
             for i in inds:
                 prev, curr, duration = self.data[i]
-                features.extend([self.tokenize_char(prev), self.tokenize_char(curr), duration])
+                features.extend([tokenize_char(prev), tokenize_char(curr), duration])
 
         return torch.tensor(features, dtype=torch.float32), torch.tensor(label, dtype=torch.long)

@@ -31,6 +31,7 @@ class Judge3(nn.Module):
 
     def forward(self, x):
         # Reshape input for attention: (batch_size, sequence_length, embedding_dim)
+        x = x.to(self.DEVICE)
         batch_size = x.size(0)
         x = x.view(batch_size, self.window_size, -1)  # Assuming input is flattened
         x = self.input_projection(x)

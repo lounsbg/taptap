@@ -27,7 +27,7 @@ class Judge2(nn.Module):
         self.to(self.DEVICE)
 
     def forward(self, x):
-        return self.classifier(x)   
+        return self.classifier(x.to(self.DEVICE))   
     
     def train_model(self, data_file, criterion, optimizer, scheduler=None, num_epochs=100, batch_size=2, test=False, wandb_plot=True, random=True):  
         self.wandb_plot = wandb_plot   

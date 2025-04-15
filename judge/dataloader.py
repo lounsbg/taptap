@@ -2,6 +2,10 @@
 from torch.utils.data import Dataset, DataLoader
 import torch
 
+
+def tokenize_char(c):
+    return ord(c) - ord('a')
+
 class TapTapDataset(Dataset):
     def __init__(self, file_path):
         super().__init__()
@@ -20,8 +24,6 @@ class TapTapDataset(Dataset):
     def __len__(self):
         return len(self.currs)
 
-    def tokenize_char(self, c):
-        return ord(c) - ord('a')
 
     def __getitem__(self, idx):
-        return torch.tensor([self.tokenize_char(self.prevs[idx]), self.tokenize_char(self.currs[idx]), self.durations[idx]], dtype=torch.float32), torch.tensor(self.labels[idx], dtype=torch.long)
+        return torch.tensor([tokenize_char(self.prevs[idx]), tokenize_char(self.currs[idx]), self.durations[idx]], dtype=torch.float32), torch.tensor(self.labels[idx], dtype=torch.long)

@@ -42,6 +42,7 @@ class JudgeLSTM(nn.Module):
 
     def forward(self, x):
         # Reshape input for LSTM: (batch_size, sequence_length, input_dim)
+        x = x.to(self.DEVICE)
         batch_size = x.size(0)
         x = x.view(batch_size, self.window_size, -1)  # Assuming input is flattened
 
