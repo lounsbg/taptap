@@ -56,13 +56,13 @@ TEXT_INPUT_PRED = pygame_gui.elements.UITextEntryBox(
 )
 
 # Function to log detailed metrics to a .txt file
-def log_metrics(sentence, time_taken, mistakes, wpm, times_between_chars):
+def log_metrics(sentence, time_taken, mistakes, wpm, user):
     with open(metrics_file, "a") as file:
         file.write(f"Sentence: {sentence}\n")
+        file.write(f"User: {user}\n")
         file.write(f"Time Taken: {time_taken:.2f} seconds\n")
         file.write(f"Mistakes: {mistakes}\n")
         file.write(f"Words Per Minute: {wpm:.2f} WPM\n")
-        file.write(f"Time Between Each Character: {times_between_chars}\n")
         file.write("-" * 40 + "\n")
 
 def log_inputs(prev_char, curr_char, time, label):
@@ -71,7 +71,6 @@ def log_inputs(prev_char, curr_char, time, label):
 
 # Function to show the sentence on screen
 def show_text(sentence, y_offset=0, font_size=40, color="black"):
-    """ Display the sentence to type at a specific vertical offset with a customizable color. """
     font = pygame.font.SysFont("Arial", font_size)  # Use Arial or any other available font
     new_text = font.render(sentence, True, color)  # Set the text color
     new_text_rect = new_text.get_rect(center=(WIDTH / 2, HEIGHT / 4 + y_offset))  # Adjust vertical position with y_offset
@@ -146,7 +145,6 @@ def display_sentences():
         
         # Start timer to measure typing time
         start_time = time.time()
-        char_times = []  # To store time between character presses
         mistakes = 0
         last_char_time = None  # Initialize the time for the first character
         chars = []
@@ -172,7 +170,6 @@ def display_sentences():
                         else:
                             char_time = time.time() - last_char_time  # Time since last character
                             log_inputs(chars[-2], chars[-1], char_time, len(names) - 1)
-                            char_times.append(char_time)  # Store the time taken for this character
                             last_char_time = time.time()  # Update last character time
 
                     elif event.key != pygame.K_BACKSPACE and event.key != pygame.K_RETURN and (len(event.unicode) > 0):
@@ -191,7 +188,7 @@ def display_sentences():
 
                         # Use the check_input_match function to compare the text
                         if check_input_match(typed_text, sentence_to_type):
-                            log_metrics(sentence_to_type, time_taken, mistakes, wpm, char_times)  # Log metrics to file
+                            log_metrics(sentence_to_type, time_taken, mistakes, wpm, names[-1])  # Log metrics to file
                             current_sentence_index += 1  # Move to the next sentence
                             TEXT_INPUT.clear()  # Clear the text input field
                         else: 
