@@ -1,20 +1,27 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
-
-
 import pygame
 import pygame_gui
 import sys
 import time  # For measuring typing time
 
+import torch
+import torch.nn as nn
 
-# In[1]:
+from judge.judge import Judge
+from judge.judgeV2 import Judge2
+from judge.judgeV3 import Judge3
+from judge.judgeLSTM import JudgeLSTM
 
 
 # Initialize pygame
 pygame.init()
+
+#initialize the model
+model = JudgeLSTM(num_classes=2, hidden_dim=64, window_size=15, lstm_layers=3)
+criterion = nn.CrossEntropyLoss()
+optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, weight_decay=1e-1)
 
 # Screen setup
 WIDTH, HEIGHT = 1600, 900
