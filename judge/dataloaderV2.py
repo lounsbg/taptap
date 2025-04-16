@@ -32,7 +32,7 @@ class TapTapDataset2(Dataset):
         inds = [x for x in inds if x <= idx][-self.window_size:]
         if (len(inds) < self.window_size):
             for _ in range(self.window_size - len(inds)):
-                features.extend([0,0,0])
+                features.extend([-66,-66,-1])
             for i in inds:
                 prev, curr, duration = self.data[i]
                 features.extend([tokenize_char(prev), tokenize_char(curr), duration])

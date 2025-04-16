@@ -49,7 +49,7 @@ class Judge3(nn.Module):
         #wandb initialization
         if wandb_plot:
             wandb.login()
-            wandb.init(project='TapTap V1', name=time.strftime("Experiment %m/%d %I:%M:%S%p"))
+            wandb.init(project='TapTap V3', name=time.strftime("Experiment %m/%d %I:%M:%S%p"))
 
         # Dummy data for testing
         dataset = TapTapDataset2(data_file, window_size=self.window_size)

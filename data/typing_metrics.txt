@@ -1,12 +1,12 @@
 Sentence: The quick brown fox jumps over the lazy dog. Hello, world! How's it going?
 User: Gabe
-Time Taken: 23.02 seconds
-Mistakes: 15
-Words Per Minute: 36.50 WPM
+Time Taken: 17.45 seconds
+Mistakes: 5
+Words Per Minute: 48.13 WPM
 ----------------------------------------
 Sentence: The quick brown fox jumps over the lazy dog. Hello, world! How's it going?
-User: Jolie
-Time Taken: 13.43 seconds
-Mistakes: 1
-Words Per Minute: 62.53 WPM
+User: Abhi
+Time Taken: 25.28 seconds
+Mistakes: 7
+Words Per Minute: 33.23 WPM
 ----------------------------------------

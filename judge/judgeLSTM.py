@@ -36,9 +36,19 @@ class JudgeLSTM(nn.Module):
             nn.Linear(hidden_dim // 4, num_classes),
         )
 
+        self.initialize_weights()
+
         # Ensure GPU/CPU compatibility
         self.DEVICE = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
         self.to(self.DEVICE)
+
+    def initialize_weights(self):
+        for name, param in self.named_parameters():
+            if 'weight' in name:
+                nn.init.xavier_uniform_(param)
+            elif 'bias' in name:
+                nn.init.zeros_(param)
+
 
     def forward(self, x):
         # Reshape input for LSTM: (batch_size, sequence_length, input_dim)
@@ -58,12 +68,12 @@ class JudgeLSTM(nn.Module):
         # Pass through the classifier
         return self.classifier(attn_output)
         
-    def train_model(self, data_file, criterion, optimizer, scheduler=None, num_epochs=100, batch_size=2, test=False, wandb_plot=True, random=True):  
+    def train_model(self, data_file, criterion, optimizer, scheduler=None, num_epochs=10, batch_size=2, test=False, wandb_plot=True, random=True):  
         self.wandb_plot = wandb_plot   
         #wandb initialization
         if wandb_plot:
             wandb.login()
-            wandb.init(project='TapTap V1', name=time.strftime("Experiment %m/%d %I:%M:%S%p"))
+            wandb.init(project='TapTap LSTM', name=time.strftime("Experiment %m/%d %I:%M:%S%p"))
 
         # Dummy data for testing
         dataset = TapTapDataset2(data_file, window_size=self.window_size)
@@ -88,7 +98,7 @@ class JudgeLSTM(nn.Module):
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=random)
         if test:
             val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=random)
-            test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=random) 
+            test_loader = DataLoader(test_dataset, batch_size=1, shuffle=random) 
         else:
             val_loader = None
             test_loader = None
@@ -141,9 +151,11 @@ class JudgeLSTM(nn.Module):
                 if wandb_plot: 
                     wandb.log({"Validation Loss": (loss_sum/(step+1)), "Validation Accuracy": num_correct / num_total})
 
+        self.eval()
         return test_loader
 
     def test_model(self, test_loader, wandb_matrix=True):
+        self.eval()
         num_total = 0
         num_correct = 0
         all_labels = []

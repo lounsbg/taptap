@@ -251,7 +251,7 @@ def predict(model):
     pygame.event.clear()
 
     window_buffer = [(0, 0, 0)] * model.window_size  # Initialize to window size for simplicity
-
+    outputs = torch.zeros(1, len(names))
 
     while True:
         # Event handling and UI updates
@@ -267,26 +267,35 @@ def predict(model):
                         return  # Exit the predict function
 
             if event.type == pygame.KEYDOWN:
-                if (prev_time == None): # If this is the first key pressed
-                    prev_time = time.time()
-                else: # Otherwise...
-                    curr_time = time.time()
-                    letter = event.unicode
-                    # Tokenize the input and add it to the buffer
-                    if len(letter) > 0:  # Ignore special keys like Shift
-                        tokenized_input = (tokenize_char(letter), tokenize_char(letter), curr_time - prev_time)
-                        window_buffer.append(tokenized_input)
+                if (TEXT_INPUT_PRED.get_text() == ""): # If the text input is empty, reset the outputs
+                    outputs = torch.zeros(1, len(names)) # Reset the outputs if the text input is empty
+                
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit(0)  # Break the loop to exit gracefully
 
-                        window_buffer.pop(0) # discard the oldest in the window buffer
+                if (len(event.unicode) > 0):
+                    if (prev_time == None): # If this is the first key pressed
+                        prev_time = time.time()
+                    else: # Otherwise...
+                        curr_time = time.time()
+                        letter = event.unicode
+                        # Tokenize the input and add it to the buffer
+                        if len(letter) > 0:  # Ignore special keys like Shift
+                            tokenized_input = (tokenize_char(letter), tokenize_char(letter), curr_time - prev_time)
+                            window_buffer.append(tokenized_input)
 
-                        inputs = torch.tensor(window_buffer, dtype=torch.float32).unsqueeze(0) # feed into model
-                        _, prediction = torch.max(model(inputs), 1)
-                        prediction = names[prediction.item()]
+                            window_buffer.pop(0) # discard the oldest in the window buffer
 
-                    prev_time = curr_time
+                            inputs = torch.tensor(window_buffer, dtype=torch.float32).unsqueeze(0) # feed into model
+                            outputs += model(inputs)
+                            #print(outputs)
+                            _, max_index = torch.max(outputs, 1)# get the prediction
+                            prediction = names[max_index.item()] # get the index of the max value
+
+                        prev_time = curr_time
 
             MANAGER.process_events(event)
-
         # Update the UI manager
         MANAGER.update(UI_REFRESH_RATE)
 
