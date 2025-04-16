@@ -250,7 +250,7 @@ def predict(model):
     TEXT_INPUT_PRED.set_text("")
     pygame.event.clear()
 
-    window_buffer = [(0, 0, 0)] * model.window_size  # Initialize to window size for simplicity
+    window_buffer = [(-66, -66, -1)] * model.window_size  # Initialize to window size for simplicity
     outputs = torch.zeros(1, len(names))
 
     while True:
@@ -334,13 +334,13 @@ if __name__ == "__main__":
 
         #initialize the model
         display_training()
-        model = JudgeLSTM(num_classes=len(names), hidden_dim=64, window_size=3, lstm_layers=3)
+        model = JudgeLSTM(num_classes=2, hidden_dim=128, window_size=5, lstm_layers=2, num_heads = 4, dropout=0.9)
         criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, weight_decay=1e-1)
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
         #train the model
         print("Trining the model:")
-        model.train_model(training_file, criterion, optimizer, wandb_plot=False, random=True)
+        test_loader = model.train_model("data/train_data.txt", criterion, optimizer, num_epochs=15, batch_size=2)
 
         #generate predictions
         predict(model)

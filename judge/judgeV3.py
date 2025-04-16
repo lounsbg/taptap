@@ -1,11 +1,13 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
 import wandb
 import time
 from tqdm import tqdm
 from judge.dataloaderV2 import TapTapDataset2
 from torch.utils.data import DataLoader, random_split
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 class Judge3(nn.Module):
     def __init__(self, num_classes=2, hidden_dim=64, window_size=3, num_heads=1, dropout=0.5):
@@ -36,7 +38,7 @@ class Judge3(nn.Module):
         x = x.view(batch_size, self.window_size, -1)  # Assuming input is flattened
         x = self.input_projection(x)
         # Apply attention
-        attn_output, _ = self.attention(x, x, x)  # Self-attention
+        attn_output, _ = self.attention(x, x, x)
 
         # Flatten the output for the classifier
         attn_output = attn_output.mean(dim=1)  # Aggregate over the sequence dimension
@@ -44,7 +46,7 @@ class Judge3(nn.Module):
         # Pass through the classifier
         return self.classifier(attn_output)
         
-    def train_model(self, data_file, criterion, optimizer, scheduler=None, num_epochs=100, batch_size=2, test=False, wandb_plot=True, random=True):  
+    def train_model(self, data_file, criterion, optimizer, scheduler=None, num_epochs=100, batch_size=2, test_data=None, wandb_plot=True, random=True):  
         self.wandb_plot = wandb_plot   
         #wandb initialization
         if wandb_plot:
@@ -52,32 +54,22 @@ class Judge3(nn.Module):
             wandb.init(project='TapTap V3', name=time.strftime("Experiment %m/%d %I:%M:%S%p"))
 
         # Dummy data for testing
-        dataset = TapTapDataset2(data_file, window_size=self.window_size)
+        train_dataset = TapTapDataset2(data_file, window_size=self.window_size)
 
-        if test:
+        if test_data:
+            test_dataset = TapTapDataset2(test_data, self.window_size)
             #Split data for testing 
-            train_size = int(0.7 * len(dataset))
-            val_size = int(0.15 * len(dataset))
-            test_size = len(dataset) - train_size - val_size
-        else:
-            train_size = len(dataset)
-            val_size = 0
-            test_size = 0
-    
-        if random:
-            train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
-        else: 
-            train_dataset = torch.utils.data.Subset(dataset, range(0, train_size))
-            val_dataset = torch.utils.data.Subset(dataset, range(train_size, train_size + val_size))
-            test_dataset = torch.utils.data.Subset(dataset, range(train_size + val_size, len(dataset)))
-        #Dataloader for testing
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=random)
-        if test:
+            val_size = int(0.25 * len(test_dataset))
+            test_size = len(test_dataset) - val_size
+            val_dataset, test_dataset = random_split(test_dataset, [val_size, test_size])
             val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=random)
-            test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=random) 
+            test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=random)
         else:
             val_loader = None
             test_loader = None
+
+        #Dataloader for testing
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
         if wandb_plot: 
             wandb.watch(self)
@@ -107,7 +99,7 @@ class Judge3(nn.Module):
             if wandb_plot: 
                 wandb.log({"Training Loss": (loss_sum/(step+1)), "Training Accuracy": num_correct / num_total})
             
-            if test:
+            if test_data:
                 #validate
                 self.eval()
                 num_total = 0
@@ -160,5 +152,12 @@ class Judge3(nn.Module):
                     class_names=[str(i) for i in range(self.classifier[-1].out_features)]
                 )
             })
+
+        cm = confusion_matrix(all_labels, all_predictions)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[str(i) for i in range(self.classifier[-1].out_features)])
+
+        disp.plot(cmap=plt.cm.Blues)
+        plt.title("Confusion Matrix")
+        plt.show()
         
         return accuracy

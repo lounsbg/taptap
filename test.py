@@ -8,13 +8,13 @@ from judge.judgeLSTM import JudgeLSTM
 
 
 #Create model
-model = Judge3(num_classes=2, hidden_dim=64, window_size=15, num_heads=2, dropout=0.2)
+model = JudgeLSTM(num_classes=2, hidden_dim=128, window_size=5, lstm_layers=2, num_heads = 4, dropout=0.9)
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, weight_decay=1e-1, momentum=0.9)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 #scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.01)
 
 #train
-test_loader = model.train_model("data/test_data.txt", criterion, optimizer, num_epochs=15, test=True, wandb_plot=True, random=True)
+test_loader = model.train_model("data/train_data.txt", criterion, optimizer, num_epochs=15, batch_size=2, test_data="data/test_data.txt", wandb_plot=True, random=False)
 
 #Test
 if test_loader:
