@@ -1,3 +1,5 @@
 BERT
 judge/__pycache__
 wandb
+data/training.txt
+data/typing_metrics.txt

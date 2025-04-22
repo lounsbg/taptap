@@ -38,11 +38,11 @@ MANAGER = pygame_gui.UIManager((WIDTH, HEIGHT))
 
 # Sentences to be typed by the user
 sentences = [
-    # "The quick brown fox jumps over the lazy dog. Hello, world! How's it going?",
-    # "My favorite number is 27, but sometimes it changes",  
-    # "She said, \"Don't forget to lock the door.\"",
-    # "I can't believe it's already Friday!"
-    "This is a test of the model. We're hoping to see some good results"
+    "The quick brown fox jumps over the lazy dog. Hello, world! How's it going?",
+    "My favorite number is 27, but sometimes it changes",  
+    "She said, \"Don't forget to lock the door.\"",
+    "I can't believe it's already Friday!"
+    # "This is a test of the model. We're hoping to see some good results"
     # More sentences can be added here
 ]
 
@@ -337,14 +337,13 @@ if __name__ == "__main__":
 
         #initialize the model
         display_training()
-        model = JudgeLSTM(num_classes=2, hidden_dim=128, window_size=5, lstm_layers=2, num_heads = 4, dropout=0.9)
+        model = JudgeLSTM(num_classes=2, hidden_dim=1024, window_size=5, lstm_layers=2, num_heads = 4, dropout=0.1)
         criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)
 
         #train the model
         print("Trining the model:")
-        test_loader = model.train_model("data/train_data.txt", criterion, optimizer, num_epochs=15, batch_size=2, wandb_plot=False)
+        test_loader = model.train_model("data/train_data.txt", criterion, optimizer, num_epochs=100, batch_size=2, wandb_plot=False)
 
         #generate predictions
         predict(model)
-
