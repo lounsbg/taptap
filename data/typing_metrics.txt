@@ -1,12 +1,12 @@
-Sentence: The quick brown fox jumps over the lazy dog. Hello, world! How's it going?
+Sentence: This is a test of the model. We're hoping to see some good results
 User: Gabe
-Time Taken: 17.45 seconds
-Mistakes: 5
-Words Per Minute: 48.13 WPM
+Time Taken: 10.74 seconds
+Mistakes: 0
+Words Per Minute: 78.24 WPM
 ----------------------------------------
-Sentence: The quick brown fox jumps over the lazy dog. Hello, world! How's it going?
-User: Abhi
-Time Taken: 25.28 seconds
-Mistakes: 7
-Words Per Minute: 33.23 WPM
+Sentence: This is a test of the model. We're hoping to see some good results
+User: Jolie
+Time Taken: 17.66 seconds
+Mistakes: 4
+Words Per Minute: 47.57 WPM
 ----------------------------------------

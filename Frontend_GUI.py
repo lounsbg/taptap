@@ -38,7 +38,11 @@ MANAGER = pygame_gui.UIManager((WIDTH, HEIGHT))
 
 # Sentences to be typed by the user
 sentences = [
-    "The quick brown fox jumps over the lazy dog. Hello, world! How's it going?"
+    # "The quick brown fox jumps over the lazy dog. Hello, world! How's it going?",
+    # "My favorite number is 27, but sometimes it changes",  
+    # "She said, \"Don't forget to lock the door.\"",
+    # "I can't believe it's already Friday!"
+    "This is a test of the model. We're hoping to see some good results"
     # More sentences can be added here
 ]
 
@@ -147,7 +151,7 @@ def display_sentences():
         start_time = time.time()
         mistakes = 0
         last_char_time = None  # Initialize the time for the first character
-        chars = []
+        prev_char = ''
         typed_text = ""
         incorrect = False
 
@@ -160,21 +164,6 @@ def display_sentences():
                     sys.exit(0)  # Break the loop to exit gracefully
 
                 if event.type == pygame.KEYDOWN:
-                    #capture the timing each key stroke
-                    if (len(chars) < len(sentence_to_type)) and (event.unicode == sentence_to_type[len(chars)]): 
-                        chars.append(event.unicode)  # Append the typed character to the list
-                        # Track time between each character press
-                        if last_char_time == None:
-                            last_char_time = time.time()
-                            
-                        else:
-                            char_time = time.time() - last_char_time  # Time since last character
-                            log_inputs(chars[-2], chars[-1], char_time, len(names) - 1)
-                            last_char_time = time.time()  # Update last character time
-
-                    elif event.key != pygame.K_BACKSPACE and event.key != pygame.K_RETURN and (len(event.unicode) > 0):
-                        mistakes += 1  # Increment mistakes counter
-
                     # Handle 'Enter' key (K_RETURN)
                     if event.key == pygame.K_RETURN:
                         typed_text = TEXT_INPUT.text.strip()  # Get the typed text, strip whitespace
@@ -194,6 +183,20 @@ def display_sentences():
                         else: 
                             incorrect = True
                             mistakes += 1
+
+                    #capture the timing each key stroke
+                    elif last_char_time == None and len(event.unicode) > 0: # If this is the first key pressed
+                        last_char_time = time.time()
+                        prev_char = event.unicode
+                        
+                    elif (len(event.unicode) > 0): # Otherwise...
+                        char_time = time.time() - last_char_time  # Time since last character
+                        log_inputs(prev_char, event.unicode, char_time, len(names) - 1)
+                        prev_char = event.unicode  # Update previous character
+                        last_char_time = time.time()  # Update last character time
+
+                    if event.key == pygame.K_BACKSPACE and last_char_time != None:
+                        mistakes += 1  # Increment mistakes counter
 
                 MANAGER.process_events(event)
 
@@ -250,7 +253,7 @@ def predict(model):
     TEXT_INPUT_PRED.set_text("")
     pygame.event.clear()
 
-    window_buffer = [(0, 0, 0)] * model.window_size  # Initialize to window size for simplicity
+    window_buffer = [(-66, -66, -1)] * model.window_size  # Initialize to window size for simplicity
     outputs = torch.zeros(1, len(names))
 
     while True:
@@ -334,13 +337,13 @@ if __name__ == "__main__":
 
         #initialize the model
         display_training()
-        model = JudgeLSTM(num_classes=len(names), hidden_dim=64, window_size=3, lstm_layers=3)
+        model = JudgeLSTM(num_classes=2, hidden_dim=128, window_size=5, lstm_layers=2, num_heads = 4, dropout=0.9)
         criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, weight_decay=1e-1)
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
         #train the model
         print("Trining the model:")
-        model.train_model(training_file, criterion, optimizer, wandb_plot=False, random=True)
+        test_loader = model.train_model("data/train_data.txt", criterion, optimizer, num_epochs=15, batch_size=2, wandb_plot=False)
 
         #generate predictions
         predict(model)
